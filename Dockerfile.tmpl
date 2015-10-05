@@ -1,0 +1,42 @@
+FROM phusion/baseimage:0.9.17
+MAINTAINER pitrho
+
+ENV DEBIAN_FRONTEND noninteractive
+
+
+RUN apt-get update && \
+    apt-get -yq install mysql-server-%%MYSQL_VERSION%% pwgen awscli && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm /etc/mysql/conf.d/mysqld_safe_syslog.cnf && \
+    if [ ! -f /usr/share/mysql/my-default.cnf ] ; then cp /etc/mysql/my.cnf /usr/share/mysql/my-default.cnf; fi && \
+    mysql_install_db > /dev/null 2>&1 && \
+    touch /var/lib/mysql/.EMPTY_DB
+
+# Add MySQL configuration
+ADD my.cnf /etc/mysql/conf.d/my.cnf
+ADD mysqld_charset.cnf /etc/mysql/conf.d/mysqld_charset.cnf
+
+# Add the service scripts
+RUN mkdir /etc/service/mysql
+COPY run.sh /etc/service/mysql/run
+
+# Add import script
+COPY import_sql.sh /import_sql.sh
+
+# Add the backup-related scripts
+COPY enable_backups.sh /enable_backups.sh
+COPY backup.sh /backup.sh
+
+ENV MYSQL_USER=admin \
+    MYSQL_PASS=**Random** \
+    ON_CREATE_DB=**False** \
+    REPLICATION_MASTER=**False** \
+    REPLICATION_SLAVE=**False** \
+    REPLICATION_USER=replica \
+    REPLICATION_PASS=replica \
+    MAX_BACKUPS=30
+
+EXPOSE 3306
+
+# Use baseimage-docker's init system.
+CMD ["/sbin/my_init"]

@@ -1,44 +1,49 @@
-tutum-docker-mysql
-==================
+# Docker MySQL
 
-[![Deploy to Tutum](https://s.tutum.co/deploy-to-tutum.svg)](https://dashboard.tutum.co/stack/deploy/)
+Base docker image to run a MySQL database server. This is a modified fork of
+[tutumcloud/mysql](https://github.com/tutumcloud/mysql). It also uses
+[phusion's](https://github.com/phusion/baseimage-docker) base docker image.
 
-Base docker image to run a MySQL database server
+## MySQL version
 
+This configuration currently supports MySQL 5.5 and 5.6 on Ubuntu 14.04.
 
-MySQL version
--------------
+## Building the image
 
-Different versions are built from different folders. If you want to use MariaDB, please check our `tutum/mariadb` image: https://github.com/tutumcloud/tutum-docker-mariadb
+To create the image `pitrho/mysql`, execute the following command:
 
+    ./build.sh
 
-Usage
------
+The command above creates an image for MySQL 5.6. If you wan to use MySQL 5.5,
+pass the -v flag along with the version.
 
-To create the image `tutum/mysql`, execute the following command on the tutum-mysql folder:
+    ./build.sh -v 5.5
 
-        docker build -t tutum/mysql 5.5/
+To tag the image with a different name, pass the -t flag along with the tag
+name.
+
+    ./build.sh -t pitrho/mysql-5.6
+
+## Usage
 
 To run the image and bind to port 3306:
 
-        docker run -d -p 3306:3306 tutum/mysql
+        docker run -d -p 3306:3306 pitrho/mysql
 
-The first time that you run your container, a new user `admin` with all privileges
-will be created in MySQL with a random password. To get the password, check the logs
-of the container by running:
+The first time that you run your container, a new user `admin` with all privileges will be created in MySQL with a random password. To get the password, check the logs of the container by running:
 
         docker logs <CONTAINER_ID>
 
 You will see an output like the following:
 
-        ========================================================================
-        You can now connect to this MySQL Server using:
+    ========================================================================
+    You can now connect to this MySQL Server using:
 
-            mysql -uadmin -p47nnf4FweaKu -h<host> -P<port>
+        mysql -uadmin -p47nnf4FweaKu -h<host> -P<port>
 
-        Please remember to change the above password as soon as possible!
-        MySQL user 'root' has no password but only allows local connections.
-        ========================================================================
+    Please remember to change the above password as soon as possible!
+    MySQL user 'root' has no password but only allows local connections.
+    ========================================================================
 
 In this case, `47nnf4FweaKu` is the password allocated to the `admin` user.
 
@@ -50,102 +55,55 @@ You can now test your deployment:
 
 Done!
 
-Passing extra configuration to start mysql server
-------------------------------------------------
+## Changing the database user and password
 
-To pass additional settings to `mysqld`, you can use environment variable `EXTRA_OPTS`.
-For example, to run mysql using lower case table name, you can do:
+Instead of using the default admin user and the auto-generate password, you can
+use custom values. This can be done by passing environment variables MYSQL_USER
+and MYSQL_PASS.
 
-    docker run -d -p 3306:3306 -e EXTRA_OPTS="--lower_case_table_names=1" tutum/mysql
+    docker run -d -p 3306:3306 -e MYSQL_USER=user -e MYSQL_PASS=pass pitrho/mysql
 
-Setting a specific password for the admin account
--------------------------------------------------
+## Passing extra configuration to start mysql server
 
-If you want to use a preset password instead of a random generated one, you can
-set the environment variable `MYSQL_PASS` to your specific password when running the container:
+To pass additional settings to `mysqld`, you can use environment variable `EXTRA_OPTS`. For example, to run mysql using lower case table name, you can do:
 
-        docker run -d -p 3306:3306 -e MYSQL_PASS="mypass" tutum/mysql
-
-You can now test your deployment:
-
-        mysql -uadmin -p"mypass"
-
-The admin username can also be set via the `MYSQL_USER` environment variable.
+    docker run -d -p 3306:3306 -e EXTRA_OPTS="--lower_case_table_names=1" pitrho/mysql
 
 
-
-Creating a database on container creation
--------------------------------------------------
+## Creating a database on container creation
 
 If you want a database to be created inside the container when you start it up
-for the first time you can set the environment variable `ON_CREATE_DB` to a string
-that names the database.
+for the first time,then you can set the environment variable `ON_CREATE_DB` to
+the name of the database.
 
-        docker run -d -p 3306:3306 -e ON_CREATE_DB="newdatabase" tutum/mysql
+    docker run -d -p 3306:3306 -e ON_CREATE_DB="newdatabase" pitrho/mysql
 
-If this is combined with importing SQL files, those files will be imported into the
-created database.
+If this is combined with importing SQL files, those files will be imported into the created database.
 
-Mounting the database file volume
----------------------------------
+## Database data and volumes
 
-In order to persist the database data, you can mount a local folder from the host
-on the container to store the database files. To do so:
+This image does not enforce any volumes on the user. Instead, it is up to the
+user to decide how to create any volumes to store the data. Docker has several
+ways to do this. More information can be found in the Docker
+[user guide](https://docs.docker.com/userguide/dockervolumes/).
 
-        docker run -d -v /path/in/host:/var/lib/mysql tutum/mysql /bin/bash -c "/usr/bin/mysql_install_db"
+## Database backups
 
-This will mount the local folder `/path/in/host` inside the docker in `/var/lib/mysql` (where MySQL will store the database files by default). `mysql_install_db` creates the initial database structure.
+This image introduces a mechanism for creating and storing backups on Amazon S3.
+The backups can be run manually or using an internal cron schedule.
 
-Remember that this will mean that your host must have `/path/in/host` available when you run your docker image!
+To run the backups manually, do:
 
-After this you can start your MySQL image, but this time using `/path/in/host` as the database folder:
+    docker run -e MYSQL_DB=dname -e AWS_ACCESS_KEY_ID=keyid -e AWS_SECRET_ACCESS_KEY=secret -e AWS_DEFAULT_REGION=region -e S3_BUCKET=path/to/bucket /backup.sh
 
-        docker run -d -p 3306:3306 -v /path/in/host:/var/lib/mysql tutum/mysql
+To run the backups on a cron schedule (e.g every day at 6 am), do:
 
-
-Mounting the database file volume from other containers
-------------------------------------------------------
-
-Another way to persist the database data is to store database files in another container.
-To do so, first create a container that holds database files:
-
-    docker run -d -v /var/lib/mysql --name db_vol -p 22:22 tutum/ubuntu-trusty
-
-This will create a new ssh-enabled container and use its folder `/var/lib/mysql` to store MySQL database files.
-You can specify any name of the container by using `--name` option, which will be used in next step.
-
-After this you can start your MySQL image using volumes in the container created above (put the name of container in `--volumes-from`)
-
-    docker run -d --volumes-from db_vol -p 3306:3306 tutum/mysql
+    docker run -d -p 3306:3306 -e MYSQL_DB=dname -e AWS_ACCESS_KEY_ID=keyid -e AWS_SECRET_ACCESS_KEY=secret -e AWS_DEFAULT_REGION=region -e S3_BUCKET=path/to/bucket -e CRON_TIME="0 6 * * * root"
 
 
-Migrating an existing MySQL Server
-----------------------------------
-
-In order to migrate your current MySQL server, perform the following commands from your current server:
-
-To dump your databases structure:
-
-        mysqldump -u<user> -p --opt -d -B <database name(s)> > /tmp/dbserver_schema.sql
-
-To dump your database data:
-
-        mysqldump -u<user> -p --quick --single-transaction -t -n -B <database name(s)> > /tmp/dbserver_data.sql
-
-To import a SQL backup which is stored for example in the folder `/tmp` in the host, run the following:
-
-        sudo docker run -d -v /tmp:/tmp tutum/mysql /bin/bash -c "/import_sql.sh <user> <pass> /tmp/<dump.sql>"
-
-Also, you can start the new database initializing it with the SQL file:
-
-        sudo docker run -d -v /path/in/host:/var/lib/mysql -e STARTUP_SQL="/tmp/<dump.sql>" tutum/mysql
-
-Where `<user>` and `<pass>` are the database username and password set earlier and `<dump.sql>` is the name of the SQL file to be imported.
-
-
-Replication - Master/Slave
+## Replication - Master/Slave
 -------------------------
-To use MySQL replication, please set environment variable `REPLICATION_MASTER`/`REPLICATION_SLAVE` to `true`. Also, on master side, you may want to specify `REPLICATION_USER` and `REPLICATION_PASS` for the account to perform replication, the default value is `replica:replica`
+To use MySQL replication, please set environment variable `REPLICATION_MASTER`/`REPLICATION_SLAVE` to `true`. Also, on the master side, you may want to specify `REPLICATION_USER` and `REPLICATION_PASS` for the account to perform replication, the default value is `replica:replica`
 
 Examples:
 - Master MySQL
@@ -157,17 +115,3 @@ Examples:
         docker run -d -e REPLICATION_SLAVE=true -p 3307:3306 --link mysql:mysql tutum/mysql
 
 Now you can access port `3306` and `3307` for the master/slave MySQL.
-
-Environment variables
----------------------
-
-`MYSQL_USER`: Set a specific username for the admin account (default 'admin').
-
-`MYSQL_PASS`: Set a specific password for the admin account.
-
-`STARTUP_SQL`: Defines one or more SQL scripts separated by spaces to initialize the database. Note that the scripts must be inside the container, so you may need to mount them.
-
-Compatibility Issues
---------------------
-
-- Volume created by MySQL 5.6 cannot be used in MySQL 5.5 Images or MariaDB images.
