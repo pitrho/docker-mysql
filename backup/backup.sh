@@ -14,9 +14,15 @@ MYSQL_DB=${MYSQL_DB:-"--all-databases"}
 [ -z "${MYSQL_USER}" ] && { echo "=> MYSQL_USER cannot be empty" && exit 1; }
 [ -z "${MYSQL_PASS}" ] && { echo "=> MYSQL_PASS cannot be empty" && exit 1; }
 [ -z "${S3_BUCKET}" ] && { echo "=> S3_BUCKET cannot be empty" && exit 1; }
+[ -z "${AWS_ACCESS_KEY_ID}" ] && { echo "=> AWS_ACCESS_KEY_ID cannot be empty" && exit 1; }
+[ -z "${AWS_SECRET_ACCESS_KEY}" ] && { echo "=> AWS_SECRET_ACCESS_KEY cannot be empty" && exit 1; }
+[ -z "${AWS_DEFAULT_REGION}" ] && { echo "=> AWS_DEFAULT_REGION cannot be empty" && exit 1; }
 
-MAX_BACKUPS=${MAX_BACKUPS}
-BACKUP_NAME="${MYSQL_DB}_`date +"%m%d%Y_%H%M%S"`.sql.gz"
+
+DEFAULT_MAX_BACKUPS=30
+MAX_BACKUPS=${MAX_BACKUPS:-${DEFAULT_MAX_BACKUPS}}
+BACKUP_PREFIX=$( [ "$MYSQL_DB" = "--all-databases" ] && echo "all" || echo $MYSQL_DB )
+BACKUP_NAME="${BACKUP_PREFIX}_`date +"%m%d%Y_%H%M%S"`.sql.gz"
 BACKUP_PATH="/tmp/${BACKUP_NAME}"
 
 echo "=> Backup started ..."
