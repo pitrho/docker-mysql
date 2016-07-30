@@ -34,6 +34,7 @@ if [ -n "${CRON_TIME}" ]; then
     [ -n "${EXTRA_OPTS}" ] && { echo "EXTRA_OPTS=${EXTRA_OPTS}" >> /etc/cron.d/mysql_backup; }
     echo "${CRON_TIME} /backup.sh >> ${BACKUP_LOG} 2>&1" >> /etc/cron.d/mysql_backup
 
+    echo "=> Cron scheduled for database backups on schedule ${CRON_TIME} ..."
     # start cron if it's not running
     if [ ! -f /var/run/crond.pid ]; then
         exec /usr/sbin/cron -f

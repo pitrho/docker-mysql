@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MYSQL_VERSION="5.6"
-IMAGE_TAG="pitrho/mysql"
+IMAGE_TAG="pitrho/docker-mysql"
 
 # Custom die function.
 #

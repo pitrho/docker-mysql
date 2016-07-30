@@ -13,7 +13,10 @@ RUN apt-get update && \
     touch /var/lib/mysql/.EMPTY_DB
 
 # Add MySQL configuration
-ADD my.cnf /etc/mysql/conf.d/my.cnf
+# my-standard or my-lowmem are renamed to my.cnf in the run script based
+# on user's setting for "LOW_MEMORY_MODE". Defaults to my-standard.
+ADD my-lowmem.cnf /etc/mysql/conf.d/my-lowmem.cnf
+ADD my-standard.cnf /etc/mysql/conf.d/my-standard.cnf
 ADD mysqld_charset.cnf /etc/mysql/conf.d/mysqld_charset.cnf
 
 # Add the service scripts

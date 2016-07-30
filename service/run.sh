@@ -4,6 +4,15 @@ set -m
 set -e
 
 VOLUME_HOME="/var/lib/mysql"
+
+# Use correct configuration file based on LOW_MEMORY_MODE
+LOW_MEM=${LOW_MEMORY_MODE,,}
+if [ "$LOW_MEM" = "true" ]; then
+  cp /etc/mysql/conf.d/my-lowmem.cnf /etc/mysql/conf.d/my.cnf
+else
+  cp /etc/mysql/conf.d/my-standard.cnf /etc/mysql/conf.d/my.cnf
+fi
+
 CONF_FILE="/etc/mysql/conf.d/my.cnf"
 LOG="/var/log/mysql/error.log"
 
